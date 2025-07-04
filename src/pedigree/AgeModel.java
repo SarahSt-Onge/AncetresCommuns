@@ -1,18 +1,18 @@
-/*
+package pedigree;/*
  * MIT License
- *
+ * 
  * Copyright (c) 2025 Miklós Csűrös
- *
+ * 
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- *
+ * 
  * The above copyright notice and this permission notice shall be included in all
  * copies or substantial portions of the Software.
- *
+ * 
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -21,7 +21,6 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package pedigree;
 
 
 import java.util.Arrays;
@@ -30,7 +29,7 @@ import java.util.Random;
 /**
  *
  * Gompertz-Makeham distribution for lifespan.
- *
+ * 
  * Parametrized by accident, death rate and scale.
  *
  * @author Mikl&oacute;s Cs&#369;r&ouml;s
@@ -39,25 +38,25 @@ public class AgeModel {
     private final double death_rate;
     private final double accident_rate;
     private final double age_factor;
-
+    
     private static final double DEFAULT_ACCIDENT_RATE = 0.01; // 1% chance of dying per year
     private static final double DEFAULT_DEATH_RATE = 12.5;
     private static final double DEFAULT_SCALE = 100.0; // "maximum" age [with death rate 1]
-
+    
     public AgeModel(double accident_rate, double death_rate, double age_scale) {
         this.death_rate = death_rate;
         this.age_factor = Math.exp(age_scale/death_rate);
         this.accident_rate = accident_rate;
-
+        
     }
-
+    
     /**
      * Instantiation with default values (human).
      */
     public AgeModel(){
         this(DEFAULT_ACCIDENT_RATE, DEFAULT_DEATH_RATE, DEFAULT_SCALE);
     }
-
+    
     @Override
     public String toString(){
         StringBuilder sb = new StringBuilder(getClass().getName());
@@ -65,39 +64,39 @@ public class AgeModel {
         sb.append("]");
         return sb.toString();
     }
-
+    
     /**
      * Probability of surviving past the given age
-     *
-     * @param age
+     * 
+     * @param age 
      * @return probability of dying after the given age
      */
     public double getSurvival(double age){
-        return Math.exp(-accident_rate*age -death_rate*Math.expm1(age/death_rate)/age_factor);
+       return Math.exp(-accident_rate*age -death_rate*Math.expm1(age/death_rate)/age_factor);
     }
-
+    
     /**
      * Expected time span (TS) for mating: average number of children will be TS/matingrate.
-     *
+     * 
      * @param min_age minimum age of sexual maturity
      * @param max_age maximum age of parenting
-     * @return
+     * @return 
      */
     public double expectedParenthoodSpan(double min_age, double max_age){
-
+        
         // integration of the survival function over the mating age
-
+        
         // numerical integration with simpson's rule, dynamic setting of resolution
-
+        
         int n = 1; // number of intervals along the range
         double d = (max_age-min_age)/n;
-
-        double st = d*0.5*(getSurvival(min_age)+getSurvival(max_age));
-
-
+        
+        double st = d*0.5*(getSurvival(min_age)+getSurvival(max_age)); 
+        
+        
         double espan = 0.0;
         double old_espan = -1.0; // does not matter much
-
+        
         for (int iter=1; iter<20;iter++)
         {
             double x0=min_age+d*0.5;
@@ -113,20 +112,20 @@ public class AgeModel {
 
             n = n*2;
             d=d*0.5;
-
+            
             if (iter>5 // first five iteration kept 
                     && (Math.abs(old_espan-espan)<1e-7*old_espan
                     || (espan==0.0 && old_espan==0.0) ))
                 break;
             old_espan = espan;
-        }
+        }         
         return espan;
     }
-
+    
     /**
      * Exponentially distributed random variable.
-     *
-     *
+     * 
+     * 
      * @param RND random number generator
      * @param rate inverse of the mean
      * @return Exponential(rate)
@@ -137,9 +136,9 @@ public class AgeModel {
 
     /**
      * A random value with the specified lifespan distribution.
-     *
+     * 
      * @param RND Psudorandom number generator for uniform[0,1]
-     *
+     * 
      * @return a random value distributed by Gomperz-Makeham
      */
     public double randomAge(Random RND){
@@ -148,39 +147,39 @@ public class AgeModel {
         // pseudorandom by Gompertz for old-age
         double u = RND.nextDouble();
         double age_death = death_rate*Math.log1p(-Math.log(u)/death_rate*age_factor);
-
+        
         return Math.min(age_death, accidental_death);
     }
-
+    
     /**
      * Test for tabulating random lifespans from command line.
-     *
+     * 
      * @param args accident-rate death-rate [scale]
      */
     public static void main(String[] args){
         int arg_idx = 0;
-
+        
         if (args.length<2) {
-            Class<?> these = java.lang.invoke.MethodHandles.lookup().lookupClass();
-            System.out.println("Call as java ... "+these.toString()+" accident_rate death_rate [scale]");
-            throw new IllegalArgumentException();
+    		Class<?> these = java.lang.invoke.MethodHandles.lookup().lookupClass();
+        	System.out.println("Call as java ... "+these.toString()+" accident_rate death_rate [scale]");
+        	throw new IllegalArgumentException();
         }
-
+        
         double acc = Double.parseDouble(args[arg_idx++]);
         double dth = Double.parseDouble(args[arg_idx++]);
         double scale = DEFAULT_SCALE;
-
+        
         if (arg_idx<args.length)
             scale = Double.parseDouble(args[arg_idx++]);
-
+        
         AgeModel M= new AgeModel(acc, dth, scale);
 
         Random RND = new Random();
-
+        
         int smp_size = 1000; // this many random values
-
+        
         double[] lifespan = new double[smp_size];
-
+        
         double avg = 0.0;
         for (int r=0; r<smp_size; r++)
         {
@@ -190,7 +189,7 @@ public class AgeModel {
         }
         avg /= smp_size;
         Arrays.sort(lifespan);
-
+        
         // plot for distrubution function - 1st and 3rd columns should match (empirical vs. theoretical cumulative distribution function)
         for (int r = 0; r<smp_size; r++){
             System.out.println((1+r)+"\t"+lifespan[r]+"\t"+smp_size*(1.0-M.getSurvival(lifespan[r])));
@@ -199,5 +198,5 @@ public class AgeModel {
         double stable_rate = 2.0/span;
         System.out.println("avg\t"+avg+"\tmating span(mother): "+span+"\tstable "+stable_rate+"\t// 1/"+span/2.0);
     }
-
+    
 }
